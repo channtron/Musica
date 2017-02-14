@@ -4,22 +4,26 @@
 #include "Crystalfontz128x128_ST7735.h"
 #include "HAL_MSP430G2_Crystalfontz128x128_ST7735.h"
 #include <stdio.h>
+#include "MSP430_TMP_OPT.h"
 
 /*
  * main.c
  */
+char estado;
+char flagBot;
+
+Graphics_Context g_sContext;
 
 int lee_ch(char canal){
 	ADC10CTL0 &= ~ENC;					//deshabilita el ADC
 	ADC10CTL1&=(0x0fff);				//Borra canal anterior
 	ADC10CTL1|=canal<<12;				//selecciona nuevo canal
 	ADC10CTL0|= ENC;					//Habilita el ADC
-	ADC10CTL0|=ADC10SC;					//Empieza la conversi�n
+	ADC10CTL0|=ADC10SC;					//Empieza la conversión
 	LPM0;								//Espera fin en modo LPM0
 	return(ADC10MEM);					//Devuelve valor leido
 	}
 
-------------------------------------------------------------------
 void inicia_ADC(char canales){
 	ADC10CTL0 &= ~ENC;		//deshabilita ADC
     ADC10CTL0 = ADC10ON | ADC10SHT_3 | SREF_0|ADC10IE; //enciende ADC, S/H lento, REF:VCC, con INT
@@ -28,21 +32,58 @@ void inicia_ADC(char canales){
     ADC10AE0 = canales; //habilita los canales indicados
     ADC10CTL0 |= ENC; //Habilita el ADC
 }
-------
-void inicia_ADC(void){
-	ADC10CTL0 &= ~ENC; // deshabilita ADC
-	/*Habilitar int, Encender ADC,   Conv. Multiple,    S/H:x64,    V+=Vcc V-=gnd*/
-	ADC10CTL0 = ADC10IE | ADC10ON | MSC | ADC10SHT_3 | SREF_0;
-	/*varios canales,    reloj ADC10OSC, sin preescalado, Disparo en T0, canal 4(primero a leer)*/
-	ADC10CTL1 = CONSEQ_1 | ADC10SSEL_0 | ADC10DIV_0 | SHS_2 | INCH_4;
-	ADC10AE0 = 0x19; // 0x19=00011111: activar entradas 4, 3, 2, 1, 0
-	ADC10DTC0 = ADC10CT; // transferencia Continua: se resetea solo cuando acaba
-	ADC10DTC1 = 5; // Numero de transferencias a hacer
-	ADC10SA = (unsigned int)BufferADC; // Direccion de comienzo de la transferencia
-	ADC10CTL0 |= ENC; // habilita ADC
-}
------------------------------------------------------------------------------------------------------
 
+void pantalla_inicial(void){
+	while(P2IN&BIT5){ //No pasas a inicio hasta que sueltas el botón del joystick
+		LPM0;
+	}
+	//P1.1 y P1.2 de entrada y salida
+	P1SEL&=~(BIT1|BIT2);
+	P1SEL2&=~(BIT1|BIT2);
+	P1REN|=(BIT1|BIT2);
+	P1OUT|=(BIT1|BIT2);
+	Graphics_clearDisplay(&g_sContext);
+	Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_BLACK);
+	Graphics_drawString(&g_sContext,"Elige modo:",30,10,10,OPAQUE_TEXT);
+	Graphics_drawString(&g_sContext,"Up.- Reproducir",30,10,40,OPAQUE_TEXT);
+	Graphics_drawString(&g_sContext,"Dw.- Componer",30,10,70,OPAQUE_TEXT);
+	if (!(P1IN&BIT1)) estado=1; //Pasamos a Reproducir
+	if (!(P1IN&BIT2)) estado=2; //Pasamos a Componer
+}
+
+void reproducir(void){
+	while(P1IN&BIT1) LPM0;
+}
+
+void componer(void){
+	while(P1IN&BIT2) LPM0;
+	inicia_ADC(BIT0); //Eje x del joystick
+	inicia_ADC(BIT3); //Eje y del joystick
+
+	//Inicialización y leer I2C
+	CS_HIGH;			//Deshabilita la pantalla
+	guarda_conf();		//Almacena la config. de la USCI (para la pantalla)
+	OPT3001_init();		//Configura el I2C apuntando al OPT3001
+	DeviceID=Lee_OPT3001(DEVICEID_REG);
+	Luz=OPT3001_getLux();	//Lee la luminosidad
+	restaura_conf();	//Vuelve a modo SPI (pantalla)
+	CS_LOW;				//Habilita la pantalla
+	Graphics_clearDisplay(&g_sContext);
+	Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_BLACK);
+	Graphics_drawString(&g_sContext,"Elige forma:",30,10,10,OPAQUE_TEXT);
+	Graphics_drawString(&g_sContext,"Up.- Teclado",30,10,40,OPAQUE_TEXT);
+	Graphics_drawString(&g_sContext,"Dw.- Joycom",30,10,70,OPAQUE_TEXT);
+	if (!(P1IN&BIT1)) estado=3; //Usamos Teclado
+	if (!(P1IN&BIT2)) estado=4; //Usamos Joystick
+}
+
+void joystick(void){
+
+}
+
+void teclado(void){
+
+}
 
 void conf_reloj(char VEL){
 	BCSCTL2 = SELM_0 | DIVM_0 | DIVS_0;
@@ -94,13 +135,30 @@ void conf_reloj(char VEL){
 }
 
 
-Graphics_Context g_sContext;
-
 int main(void) {
     WDTCTL = WDTPW | WDTHOLD;	// Stop watchdog timer
 	conf_reloj(16);
-	
-	//Timer A1 para interrupci�n de 100ms
+
+	//Configuracion boton joystick
+	P2SEL&=~BIT5;
+	P2SEL2&=~BIT5;
+	P2REN|=BIT5;
+	P2OUT|=BIT5;
+
+	//PWN en el Pin 2.6
+	P2DIR|=BIT6;
+	P2SEL|=BIT6;
+	P2SEL2&=~BIT6;
+	P2SEL&=~BIT7;
+	P2SEL2&=~BIT7;
+
+	//Timer A0 para el PWM;
+	TA0CCTL1=OUTMOD_7;
+	TA0CTL=TASSEL_2 | MC_1;
+	TA0CCR0=15999;
+	TA0CCR1=1;
+
+	//Timer A1 para interrupción de 100ms
 	TA1CCTL0=CCIE;
 	TA1CCTL1=OUTMOD_0;
 	TA1CTL=TASSEL_1 | MC_1;
@@ -113,21 +171,41 @@ int main(void) {
 
 	/* Initializes graphics context */
 	Graphics_initContext(&g_sContext, &g_sCrystalfontz128x128);
+	Graphics_setBackgroundColor(&g_sContext, GRAPHICS_COLOR_WHITE);
+	Graphics_setFont(&g_sContext, &g_sFontCm16b);
 
-	UARTinit();	//Inicializar el UCB0 para UART a 9600
-	//inicia_ADC(BIT4); inicia_ADC(BIT1); � inicia_ADC();
+	//UARTinit(); Inicializar el UCB0 para UART a 9600
+	//inicia_ADC(BIT0);	//Eje x
+	//inicia_ADC(BIT3);	//Eje y
 	__bis_SR_register(GIE); //Habilitar interrupciones
 
+	estado=0;
 	while(1){
 		LPM0;
+		switch(estado){
+		case 0:
+			pantalla_inicial(); //Función
+
+		case 1:
+			reproducir(); //Función
+
+		case 2:
+			componer(); //Función
+
+		case 3:
+			teclado(); //Función
+
+		case 4:
+			joystick(); //Función
+		}
 	}
-	return 0;s
+	return 0;
 }
 
 #pragma vector=ADC10_VECTOR
 __interrupt void ConvertidorAD(void)
 {
-    LPM0_EXIT;	//Despierta al micro al final de la conversi�n
+    LPM0_EXIT;	//Despierta al micro al final de la conversión
 }
 
 #pragma vector=TIMER1_A0_VECTOR
