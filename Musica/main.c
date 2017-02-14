@@ -19,7 +19,7 @@ int lee_ch(char canal){
 	ADC10CTL1&=(0x0fff);				//Borra canal anterior
 	ADC10CTL1|=canal<<12;				//selecciona nuevo canal
 	ADC10CTL0|= ENC;					//Habilita el ADC
-	ADC10CTL0|=ADC10SC;					//Empieza la conversi贸n
+	ADC10CTL0|=ADC10SC;					//Empieza la conversi髇
 	LPM0;								//Espera fin en modo LPM0
 	return(ADC10MEM);					//Devuelve valor leido
 	}
@@ -34,7 +34,7 @@ void inicia_ADC(char canales){
 }
 
 void pantalla_inicial(void){
-	while(P2IN&BIT5){ //No pasas a inicio hasta que sueltas el bot贸n del joystick
+	while(P2IN&BIT5){ //No pasas a inicio hasta que sueltas el bot髇 del joystick
 		LPM0;
 	}
 	//P1.1 y P1.2 de entrada y salida
@@ -60,7 +60,7 @@ void componer(void){
 	inicia_ADC(BIT0); //Eje x del joystick
 	inicia_ADC(BIT3); //Eje y del joystick
 
-	//Inicializaci贸n y leer I2C
+	//Inicializaci髇 y leer I2C
 	CS_HIGH;			//Deshabilita la pantalla
 	guarda_conf();		//Almacena la config. de la USCI (para la pantalla)
 	OPT3001_init();		//Configura el I2C apuntando al OPT3001
@@ -158,7 +158,7 @@ int main(void) {
 	TA0CCR0=15999;
 	TA0CCR1=1;
 
-	//Timer A1 para interrupci贸n de 100ms
+	//Timer A1 para interrupci髇 de 100ms
 	TA1CCTL0=CCIE;
 	TA1CCTL1=OUTMOD_0;
 	TA1CTL=TASSEL_1 | MC_1;
@@ -184,19 +184,19 @@ int main(void) {
 		LPM0;
 		switch(estado){
 		case 0:
-			pantalla_inicial(); //Funci贸n
+			pantalla_inicial(); //Funci髇
 
 		case 1:
-			reproducir(); //Funci贸n
+			reproducir(); //Funci髇
 
 		case 2:
-			componer(); //Funci贸n
+			componer(); //Funci髇
 
 		case 3:
-			teclado(); //Funci贸n
+			teclado(); //Funci髇
 
 		case 4:
-			joystick(); //Funci贸n
+			joystick(); //Funci髇
 		}
 	}
 	return 0;
@@ -205,7 +205,7 @@ int main(void) {
 #pragma vector=ADC10_VECTOR
 __interrupt void ConvertidorAD(void)
 {
-    LPM0_EXIT;	//Despierta al micro al final de la conversi贸n
+    LPM0_EXIT;	//Despierta al micro al final de la conversi髇
 }
 
 #pragma vector=TIMER1_A0_VECTOR
