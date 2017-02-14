@@ -1,0 +1,134 @@
+#include <msp430.h> 
+
+//#include "msp430g2553.h"
+#include "grlib.h"
+
+#include "Crystalfontz128x128_ST7735.h"
+#include "HAL_MSP430G2_Crystalfontz128x128_ST7735.h"
+#include <stdio.h>
+
+/*
+ * main.c
+ */
+
+void conf_reloj(char VEL){
+	BCSCTL2 = SELM_0 | DIVM_0 | DIVS_0;
+	switch(VEL){
+	case 1:
+		if (CALBC1_1MHZ != 0xFF) {
+			DCOCTL = 0x00;
+			BCSCTL1 = CALBC1_1MHZ;      /* Set DCO to 1MHz */
+			DCOCTL = CALDCO_1MHZ;
+		}
+		break;
+	case 8:
+
+		if (CALBC1_8MHZ != 0xFF) {
+			__delay_cycles(100000);
+			DCOCTL = 0x00;
+			BCSCTL1 = CALBC1_8MHZ;      /* Set DCO to 8MHz */
+			DCOCTL = CALDCO_8MHZ;
+		}
+		break;
+	case 12:
+		if (CALBC1_12MHZ != 0xFF) {
+			__delay_cycles(100000);
+			DCOCTL = 0x00;
+			BCSCTL1 = CALBC1_12MHZ;     /* Set DCO to 12MHz */
+			DCOCTL = CALDCO_12MHZ;
+		}
+		break;
+	case 16:
+		if (CALBC1_16MHZ != 0xFF) {
+			__delay_cycles(100000);
+			DCOCTL = 0x00;
+			BCSCTL1 = CALBC1_16MHZ;     /* Set DCO to 16MHz */
+			DCOCTL = CALDCO_16MHZ;
+		}
+		break;
+	default:
+		if (CALBC1_1MHZ != 0xFF) {
+			DCOCTL = 0x00;
+			BCSCTL1 = CALBC1_1MHZ;      /* Set DCO to 1MHz */
+			DCOCTL = CALDCO_1MHZ;
+		}
+		break;
+
+	}
+	BCSCTL1 |= XT2OFF | DIVA_0;
+	BCSCTL3 = XT2S_0 | LFXT1S_2 | XCAP_1;
+
+}
+
+
+Graphics_Context g_sContext;
+
+unsigned long int color;
+unsigned int i,j,k;
+int main(void) {
+
+    Graphics_Rectangle rectangulo = {
+        5,
+        5,
+        123,
+        123
+    };
+    Graphics_Rectangle marco = {
+             1,
+             1,
+             127,
+             127
+         };
+    Graphics_Rectangle barra = {
+             30,
+             30,
+             31,
+             50
+         };
+
+	
+	WDTCTL = WDTPW | WDTHOLD;	// Stop watchdog timer
+    conf_reloj(16);
+
+    Crystalfontz128x128_Init();
+
+         /* Set default screen orientation */
+         Crystalfontz128x128_SetOrientation(LCD_ORIENTATION_UP);
+
+
+         /* Initializes graphics context */
+         Graphics_initContext(&g_sContext, &g_sCrystalfontz128x128);
+         Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_PURPLE);
+         Graphics_setBackgroundColor(&g_sContext, GRAPHICS_COLOR_BLACK);
+         Graphics_clearDisplay(&g_sContext);
+         Graphics_setFont(&g_sContext, &g_sFontCm16b);
+            	 Graphics_drawRectangle(&g_sContext,&marco);
+                 Graphics_setBackgroundColor(&g_sContext, GRAPHICS_COLOR_THISTLE);
+
+              Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_WHITE);
+
+         	 Graphics_drawRectangle(&g_sContext,&rectangulo);
+           	Graphics_drawString(&g_sContext,
+            	   	    	    			"Hola, GIERM's",
+            	   							15,
+            	   							12,
+            	   							10,
+											TRANSPARENT_TEXT);
+
+    while(1){
+    	for(i=0;i<255;i+=5){
+    		barra.xMax=barra.xMin+(i>>2);
+    		Graphics_fillRectangle(&g_sContext,&barra);
+    		for(j=0;j<(255-i);j+=5){
+    			k=255-(i+j);
+    				color=(i<<8)+j;
+    				color=(color<<8)+k;
+    	              Graphics_setForegroundColor(&g_sContext, color);
+    	              Graphics_fillCircle(&g_sContext,60,80,20);
+
+
+
+    		}
+    	}
+    }
+}
