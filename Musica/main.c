@@ -5,12 +5,19 @@
 #include "HAL_MSP430G2_Crystalfontz128x128_ST7735.h"
 #include <stdio.h>
 #include "MSP430_TMP_OPT.h"
+#include "reproducir.h"
 
 /*
  * main.c
  */
 char estado;
-char flagBot;
+char carac; //Para elegir la canci贸n
+char flagRep; //Para saber si estamos reproduciendo, para el timer
+char tec;  //Tecla introducida por uart
+unsigned int t,duracion;
+const unsigned int NotaTec[]={30578,28862,27240,25714,24270,22908,21622,20408,19264,18182,17168,16202,1};
+unsigned int teclita;
+int ejex, ejey;
 
 Graphics_Context g_sContext;
 
@@ -19,7 +26,7 @@ int lee_ch(char canal){
 	ADC10CTL1&=(0x0fff);				//Borra canal anterior
 	ADC10CTL1|=canal<<12;				//selecciona nuevo canal
 	ADC10CTL0|= ENC;					//Habilita el ADC
-	ADC10CTL0|=ADC10SC;					//Empieza la conversi髇
+	ADC10CTL0|=ADC10SC;					//Empieza la conversi贸n
 	LPM0;								//Espera fin en modo LPM0
 	return(ADC10MEM);					//Devuelve valor leido
 	}
@@ -33,10 +40,54 @@ void inicia_ADC(char canales){
     ADC10CTL0 |= ENC; //Habilita el ADC
 }
 
-void pantalla_inicial(void){
-	while(P2IN&BIT5){ //No pasas a inicio hasta que sueltas el bot髇 del joystick
-		LPM0;
+void asigna(char c){
+	switch(c){
+	case 83: teclita=NotaTec[0];
+	break;
+
+	case 69: teclita=NotaTec[1];
+	break;
+
+	case 68: teclita=NotaTec[2];
+	break;
+
+	case 82: teclita=NotaTec[3];
+	break;
+
+	case 70: teclita=NotaTec[4];
+	break;
+
+	case 71: teclita=NotaTec[5];
+	break;
+
+	case 89: teclita=NotaTec[6];
+	break;
+
+	case 72: teclita=NotaTec[7];
+	break;
+
+	case 85: teclita=NotaTec[8];
+	break;
+
+	case 74: teclita=NotaTec[9];
+	break;
+
+	case 73: teclita=NotaTec[10];
+	break;
+
+	case 75: teclita=NotaTec[11];
+	break;
+
+	case 76: teclita=NotaTec[0]>>1;
+	break;
+
+	case 32: teclita=NotaTec[12];
+	break;
 	}
+}
+
+void pantalla_inicial(void){
+	while(P2IN&BIT5) LPM0; //No pasas a inicio hasta que sueltas el bot贸n del joystick
 	//P1.1 y P1.2 de entrada y salida
 	P1SEL&=~(BIT1|BIT2);
 	P1SEL2&=~(BIT1|BIT2);
@@ -53,21 +104,19 @@ void pantalla_inicial(void){
 
 void reproducir(void){
 	while(P1IN&BIT1) LPM0;
+	inicia_Rep();
+	flagRep=1;
+	carac=menu_elige();
+	una_cancion(carac);
+	flagRep=0;
+	if (!(P2IN&BIT5)) estado=0;
+	else estado=1;
 }
 
 void componer(void){
 	while(P1IN&BIT2) LPM0;
 	inicia_ADC(BIT0); //Eje x del joystick
 	inicia_ADC(BIT3); //Eje y del joystick
-
-	//Inicializaci髇 y leer I2C
-	CS_HIGH;			//Deshabilita la pantalla
-	guarda_conf();		//Almacena la config. de la USCI (para la pantalla)
-	OPT3001_init();		//Configura el I2C apuntando al OPT3001
-	DeviceID=Lee_OPT3001(DEVICEID_REG);
-	Luz=OPT3001_getLux();	//Lee la luminosidad
-	restaura_conf();	//Vuelve a modo SPI (pantalla)
-	CS_LOW;				//Habilita la pantalla
 	Graphics_clearDisplay(&g_sContext);
 	Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_BLACK);
 	Graphics_drawString(&g_sContext,"Elige forma:",30,10,10,OPAQUE_TEXT);
@@ -82,7 +131,24 @@ void joystick(void){
 }
 
 void teclado(void){
-
+	while(P1IN&BIT1) LPM0;
+	UARTinit();
+	tec=UARTgetc();
+	asigna(tec);
+	ejey=lee_ch(3);
+	if (ejey<205) teclita=teclita<<2;
+	else if (ejey<410) teclita=teclita<<1;
+	else if (ejey<615) teclita=teclita;
+	else if (ejey<820) teclita>>1;
+	else teclita>>2;
+	//Inicializaci贸n y leer I2C
+	CS_HIGH;			//Deshabilita la pantalla
+	guarda_conf();		//Almacena la config. de la USCI (para la pantalla)
+	OPT3001_init();		//Configura el I2C apuntando al OPT3001
+	//DeviceID=Lee_OPT3001(DEVICEID_REG);
+	//Luz=OPT3001_getLux();	//Lee la luminosidad
+	restaura_conf();	//Vuelve a modo SPI (pantalla)
+	CS_LOW;				//Habilita la pantalla
 }
 
 void conf_reloj(char VEL){
@@ -158,7 +224,7 @@ int main(void) {
 	TA0CCR0=15999;
 	TA0CCR1=1;
 
-	//Timer A1 para interrupci髇 de 100ms
+	//Timer A1 para interrupci贸n de 100ms
 	TA1CCTL0=CCIE;
 	TA1CCTL1=OUTMOD_0;
 	TA1CTL=TASSEL_1 | MC_1;
@@ -174,9 +240,6 @@ int main(void) {
 	Graphics_setBackgroundColor(&g_sContext, GRAPHICS_COLOR_WHITE);
 	Graphics_setFont(&g_sContext, &g_sFontCm16b);
 
-	//UARTinit(); Inicializar el UCB0 para UART a 9600
-	//inicia_ADC(BIT0);	//Eje x
-	//inicia_ADC(BIT3);	//Eje y
 	__bis_SR_register(GIE); //Habilitar interrupciones
 
 	estado=0;
@@ -184,19 +247,19 @@ int main(void) {
 		LPM0;
 		switch(estado){
 		case 0:
-			pantalla_inicial(); //Funci髇
+			pantalla_inicial(); //Funci贸n
 
 		case 1:
-			reproducir(); //Funci髇
+			reproducir(); //Funci贸n
 
 		case 2:
-			componer(); //Funci髇
+			componer(); //Funci贸n
 
 		case 3:
-			teclado(); //Funci髇
+			teclado(); //Funci贸n
 
 		case 4:
-			joystick(); //Funci髇
+			joystick(); //Funci贸n
 		}
 	}
 	return 0;
@@ -205,11 +268,15 @@ int main(void) {
 #pragma vector=ADC10_VECTOR
 __interrupt void ConvertidorAD(void)
 {
-    LPM0_EXIT;	//Despierta al micro al final de la conversi髇
+    LPM0_EXIT;	//Despierta al micro al final de la conversi贸n
 }
 
 #pragma vector=TIMER1_A0_VECTOR
 __interrupt void TIMER1_A0_ISR_HOOK(void)
 {
-	LPM0_EXIT;	//Despierta al micro cada 100ms
+	if (flagRep==0)LPM0_EXIT;	//Despierta al micro cada 100ms
+	else {						//Despierta al micro dependiendo de la duraci贸n de la nota
+		t++;
+		if(t>=duracion)LPM0_EXIT;   //Sale cuando termina el tiempo de la nota que suena
+	}
 }
