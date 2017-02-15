@@ -66,6 +66,7 @@ extern const Cancion TheShire;
 extern const Cancion TheSimpsons;
 extern const Cancion TetrisTheme;
 extern const Cancion GameOfThrones;
+extern const Cancion NocheDePaz;
 
 
 
