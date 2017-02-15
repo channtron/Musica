@@ -18,6 +18,8 @@ unsigned int t,duracion;
 const unsigned int NotaTec[]={30578,28862,27240,25714,24270,22908,21622,20408,19264,18182,17168,16202,1};
 unsigned int teclita;
 int ejex, ejey;
+int DeviceID;
+unsigned long int Luz;
 
 Graphics_Context g_sContext;
 
@@ -127,6 +129,9 @@ void componer(void){
 }
 
 void joystick(void){
+	while(P1IN&BIT2) LPM0;
+	ejex=lee_ch(0);
+	ejey=lee_ch(3);
 
 }
 
@@ -145,10 +150,16 @@ void teclado(void){
 	CS_HIGH;			//Deshabilita la pantalla
 	guarda_conf();		//Almacena la config. de la USCI (para la pantalla)
 	OPT3001_init();		//Configura el I2C apuntando al OPT3001
-	//DeviceID=Lee_OPT3001(DEVICEID_REG);
-	//Luz=OPT3001_getLux();	//Lee la luminosidad
+	DeviceID=Lee_OPT3001(DEVICEID_REG);
+	Luz=OPT3001_getLux();	//Lee la luminosidad
 	restaura_conf();	//Vuelve a modo SPI (pantalla)
 	CS_LOW;				//Habilita la pantalla
+
+	//Timer para reproducir la nota
+	TA0CCR0=teclita;
+	TA0CCR1=TA0CCR0>>4;
+
+	//Pantalla
 }
 
 void conf_reloj(char VEL){
