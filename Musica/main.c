@@ -12,6 +12,7 @@
  */
 char estado;
 char carac; //Para elegir la canción
+char flagboton=0; //para controlar las pulsaciones
 char flagRep; //Para saber si estamos reproduciendo, para el timer
 char tec;  //Tecla introducida por uart
 unsigned int t,duracion;
@@ -89,77 +90,119 @@ void asigna(char c){
 }
 
 void pantalla_inicial(void){
-	while(P2IN&BIT5) LPM0; //No pasas a inicio hasta que sueltas el botón del joystick
-	//P1.1 y P1.2 de entrada y salida
-	P1SEL&=~(BIT1|BIT2);
-	P1SEL2&=~(BIT1|BIT2);
-	P1REN|=(BIT1|BIT2);
-	P1OUT|=(BIT1|BIT2);
-	Graphics_clearDisplay(&g_sContext);
-	Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_BLACK);
-	Graphics_drawString(&g_sContext,"Elige modo:",30,10,10,OPAQUE_TEXT);
-	Graphics_drawString(&g_sContext,"Up.- Reproducir",30,10,40,OPAQUE_TEXT);
-	Graphics_drawString(&g_sContext,"Dw.- Componer",30,10,70,OPAQUE_TEXT);
-	if (!(P1IN&BIT1)) estado=1; //Pasamos a Reproducir
-	if (!(P1IN&BIT2)) estado=2; //Pasamos a Componer
+	if(P2IN&BIT5){//No pasas a inicio hasta que sueltas el botón del joystick
+		flagboton=0;
+		LPM0;
+	}
+	if(flagboton==0){
+		//P1.1 y P1.2 de entrada y salida
+		P1SEL&=~(BIT1|BIT2);
+		P1SEL2&=~(BIT1|BIT2);
+		P1REN|=(BIT1|BIT2);
+		P1OUT|=(BIT1|BIT2);
+		Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_BLACK);
+		Graphics_drawString(&g_sContext,"Elige modo:",30,10,10,OPAQUE_TEXT);
+		Graphics_drawString(&g_sContext,"Up.- Reproducir",30,10,40,OPAQUE_TEXT);
+		Graphics_drawString(&g_sContext,"Dw.- Componer",30,10,70,OPAQUE_TEXT);
+		if (!(P1IN&BIT1)){
+			estado=1; //Pasamos a Reproducir
+			flagboton=1;
+			Graphics_clearDisplay(&g_sContext);
+		}
+		if (!(P1IN&BIT2)){
+			estado=2; //Pasamos a Componer
+			flagboton=1;
+			Graphics_clearDisplay(&g_sContext);
+		}
+	}
 }
 
 void reproducir(void){
-	while(P1IN&BIT1) LPM0;
-	inicia_Rep();
-	flagRep=1;
-	carac=menu_elige();
-	una_cancion(carac);
-	flagRep=0;
-	if (!(P2IN&BIT5)) estado=0;
-	else estado=1;
+	if(P1IN&BIT1){//No pasas a inicio hasta que sueltas el botón del joystick
+			flagboton=0;
+			LPM0;
+		}
+	if(flagboton==0){
+		inicia_Rep();
+		flagRep=1;
+		carac=menu_elige();
+		una_cancion(carac);
+		flagRep=0;
+		if (!(P2IN&BIT5)){
+			estado=0;
+			flagboton=1;
+		}
+		else estado=1;
+	}
 }
 
 void componer(void){
-	while(P1IN&BIT2) LPM0;
-	inicia_ADC(BIT0); //Eje x del joystick
-	inicia_ADC(BIT3); //Eje y del joystick
-	Graphics_clearDisplay(&g_sContext);
-	Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_BLACK);
-	Graphics_drawString(&g_sContext,"Elige forma:",30,10,10,OPAQUE_TEXT);
-	Graphics_drawString(&g_sContext,"Up.- Teclado",30,10,40,OPAQUE_TEXT);
-	Graphics_drawString(&g_sContext,"Dw.- Joycom",30,10,70,OPAQUE_TEXT);
-	if (!(P1IN&BIT1)) estado=3; //Usamos Teclado
-	if (!(P1IN&BIT2)) estado=4; //Usamos Joystick
+	if(P1IN&BIT2){//No pasas a inicio hasta que sueltas el botón del joystick
+			flagboton=0;
+			LPM0;
+		}
+	if(flagboton==0){
+		inicia_ADC(BIT0); //Eje x del joystick
+		inicia_ADC(BIT3); //Eje y del joystick
+		Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_BLACK);
+		Graphics_drawString(&g_sContext,"Elige forma:",30,10,10,OPAQUE_TEXT);
+		Graphics_drawString(&g_sContext,"Up.- Teclado",30,10,40,OPAQUE_TEXT);
+		Graphics_drawString(&g_sContext,"Dw.- Joycom",30,10,70,OPAQUE_TEXT);
+		if (!(P1IN&BIT1)){
+			estado=3; //Usamos Teclado
+			flagboton=1;
+			Graphics_clearDisplay(&g_sContext);
+		}
+		if (!(P1IN&BIT2)){
+			estado=4; //Usamos Joystick
+			flagboton=1;
+			Graphics_clearDisplay(&g_sContext);
+		}
+	}
 }
 
 void joystick(void){
-	while(P1IN&BIT2) LPM0;
-	ejex=lee_ch(0);
-	ejey=lee_ch(3);
-
+	if(P1IN&BIT2){//No pasas a inicio hasta que sueltas el botón del joystick
+		flagboton=0;
+		LPM0;
+	}
+	if(flagboton==0){
+		ejex=lee_ch(0);
+		ejey=lee_ch(3);
+	}
 }
 
 void teclado(void){
-	while(P1IN&BIT1) LPM0;
-	UARTinit();
-	tec=UARTgetc();
-	asigna(tec);
-	ejey=lee_ch(3);
-	if (ejey<205) teclita=teclita<<2;
-	else if (ejey<410) teclita=teclita<<1;
-	else if (ejey<615) teclita=teclita;
-	else if (ejey<820) teclita>>1;
-	else teclita>>2;
-	//Inicialización y leer I2C
-	CS_HIGH;			//Deshabilita la pantalla
-	guarda_conf();		//Almacena la config. de la USCI (para la pantalla)
-	OPT3001_init();		//Configura el I2C apuntando al OPT3001
-	DeviceID=Lee_OPT3001(DEVICEID_REG);
-	Luz=OPT3001_getLux();	//Lee la luminosidad
-	restaura_conf();	//Vuelve a modo SPI (pantalla)
-	CS_LOW;				//Habilita la pantalla
+	if(P1IN&BIT1){//No pasas a inicio hasta que sueltas el botón del joystick
+		flagboton=0;
+		LPM0;
+	}
+	if(flagboton==0){
+		UARTinit();
+		tec=UARTgetc();
+		asigna(tec);
+		ejey=lee_ch(3);
+		if (ejey<205) teclita=teclita<<2;
+		else if (ejey<410) teclita=teclita<<1;
+		else if (ejey<615) teclita=teclita;
+		else if (ejey<820) teclita=teclita>>1;
+		else teclita=teclita>>2;
+		//Inicialización y leer I2C
+		CS_HIGH;			//Deshabilita la pantalla
+		guarda_conf();		//Almacena la config. de la USCI (para la pantalla)
+		OPT3001_init();		//Configura el I2C apuntando al OPT3001
+		DeviceID=Lee_OPT3001(DEVICEID_REG);
+		Luz=OPT3001_getLux();	//Lee la luminosidad
+		restaura_conf();	//Vuelve a modo SPI (pantalla)
+		CS_LOW;				//Habilita la pantalla
 
-	//Timer para reproducir la nota
-	TA0CCR0=teclita;
-	TA0CCR1=TA0CCR0>>4;
+		//Timer para reproducir la nota
+		TA0CCR0=teclita;
+		TA0CCR1=TA0CCR0>>4;
 
-	//Pantalla
+		//Pantalla
+
+	}
 }
 
 void conf_reloj(char VEL){
@@ -250,6 +293,7 @@ int main(void) {
 	Graphics_initContext(&g_sContext, &g_sCrystalfontz128x128);
 	Graphics_setBackgroundColor(&g_sContext, GRAPHICS_COLOR_WHITE);
 	Graphics_setFont(&g_sContext, &g_sFontCm16b);
+	Graphics_clearDisplay(&g_sContext);
 
 	__bis_SR_register(GIE); //Habilitar interrupciones
 
@@ -259,18 +303,19 @@ int main(void) {
 		switch(estado){
 		case 0:
 			pantalla_inicial(); //Función
-
+		break;
 		case 1:
 			reproducir(); //Función
-
+		break;
 		case 2:
 			componer(); //Función
-
+		break;
 		case 3:
 			teclado(); //Función
-
+		break;
 		case 4:
 			joystick(); //Función
+		break;
 		}
 	}
 	return 0;
