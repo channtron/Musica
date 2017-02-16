@@ -132,7 +132,6 @@ void reproducir(void){
 			estado=0;
 			flagboton=1;
 		}
-		else estado=1;
 	}
 }
 
@@ -153,10 +152,14 @@ void componer(void){
 			flagboton=1;
 			Graphics_clearDisplay(&g_sContext);
 		}
-		if (!(P1IN&BIT2)){
+		else if (!(P1IN&BIT2)){
 			estado=4; //Usamos Joystick
 			flagboton=1;
 			Graphics_clearDisplay(&g_sContext);
+		}
+		else if (!(P2IN&BIT5)){
+			estado=0;
+			flagboton=1;
 		}
 	}
 }
@@ -169,6 +172,12 @@ void joystick(void){
 	if(flagboton==0){
 		ejex=lee_ch(0);
 		ejey=lee_ch(3);
+
+
+		if (!(P2IN&BIT5)){
+					estado=0;
+					flagboton=1;
+		}
 	}
 }
 
@@ -202,6 +211,10 @@ void teclado(void){
 
 		//Pantalla
 
+		if (!(P2IN&BIT5)){
+					estado=0;
+					flagboton=1;
+		}
 	}
 }
 
