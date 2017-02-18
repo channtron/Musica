@@ -21,6 +21,12 @@ unsigned int teclita;
 int ejex, ejey;
 int DeviceID;
 unsigned long int Luz;
+int circle1[]={35,35};//coordenadas centrales de los circulos{X,Y}
+int circle2[]={120,110};
+int circle3[]={40,100};
+int circle4[]={80,40};
+int circle5[]={50,50};
+
 
 Graphics_Context g_sContext;
 
@@ -171,8 +177,12 @@ void joystick(void){
 	}
 	if(flagboton==0){
 		ejex=lee_ch(0);
-		ejey=lee_ch(3);
+		ejey=1024-lee_ch(3);
 
+		Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_WHITE);//borrar circulo antio, esto sería recomendable antes de leer los ejes(podemos dibujar primero las bolas y despues cambiar el sonido
+		Graphics_fillCircle(&g_sContext,circle1[0]+8,circle1[1]+8,30 );// MAS 8 ES LA POSICION CENTRAL
+		Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_BLUE);//dibujar nuevo circulo
+		Graphics_fillCircle(&g_sContext,circle1[0]+(ejex>>6),circle1[1]+(ejey>>6),20 );
 
 		if (!(P2IN&BIT5)){
 					estado=0;
