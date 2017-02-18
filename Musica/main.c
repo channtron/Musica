@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include "MSP430_TMP_OPT.h"
 #include "reproducir.h"
-
+#include "uart_STDIO.h"
 /*
  * main.c
  */
