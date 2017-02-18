@@ -192,5 +192,5 @@ const Cancion NocheDePaz={
 /* ESCALA para usar en el tercer apartado */
 
 const char ESCALA[]={DO,REb,RE,MIb,MI,FA,SOLb,SOL,LAb,LA,SIb,SI,DO+12};
-const char ESCALA1[]={DO,RE,FA,SOL,SIb,SI};//ejemplo de 5 notas para joystick (primera parte little green bag
+const char ESCALA1[]={DO,RE,FA,SOL,SIb};//ejemplo de 5 notas para joystick (primera parte little green bag
 
