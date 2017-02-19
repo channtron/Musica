@@ -4,9 +4,10 @@
 #include "Crystalfontz128x128_ST7735.h"
 #include "HAL_MSP430G2_Crystalfontz128x128_ST7735.h"
 #include <stdio.h>
+#include "uart_STDIO.h"
 #include "MSP430_TMP_OPT.h"
 #include "reproducir.h"
-#include "uart_STDIO.h"
+
 /*
  * main.c
  */
@@ -15,18 +16,17 @@ char carac; //Para elegir la canción
 char flagboton=0; //para controlar las pulsaciones
 char flagRep; //Para saber si estamos reproduciendo, para el timer
 char tec;  //Tecla introducida por uart
+int Nesc; //Puntero para elegir la escala del joystick
+char Nescc;
 unsigned int t,duracion;
 const unsigned int NotaTec[]={30578,28862,27240,25714,24270,22908,21622,20408,19264,18182,17168,16202,1};
 unsigned int teclita;
-int ejex, ejey;
+int ejex, ejey, ejeyrep;
 int DeviceID;
-unsigned long int Luz;
-int circle1[]={35,35};//coordenadas centrales de los circulos{X,Y}
-int circle2[]={120,110};
-int circle3[]={40,100};
-int circle4[]={80,40};
-int circle5[]={50,50};
-
+unsigned long int Luz, LuzRef;
+int circle1[]={22,22};//coordenadas centrales de los circulos{X,Y}
+int circle2[]={40,100};
+int circle3[]={80,40};
 
 Graphics_Context g_sContext;
 
@@ -47,6 +47,18 @@ void inicia_ADC(char canales){
     //Modo simple, reloj ADC, sin subdivision, Disparo soft, Canal 0
     ADC10AE0 = canales; //habilita los canales indicados
     ADC10CTL0 |= ENC; //Habilita el ADC
+}
+
+int LeerLuz(void){
+	//Inicialización y leer I2C
+	CS_HIGH;			//Deshabilita la pantalla
+	guarda_conf();		//Almacena la config. de la USCI (para la pantalla)
+	OPT3001_init();		//Configura el I2C apuntando al OPT3001
+	DeviceID=Lee_OPT3001(DEVICEID_REG);
+	Luz=OPT3001_getLux();	//Lee la luminosidad
+	restaura_conf();	//Vuelve a modo SPI (pantalla)
+	CS_LOW;				//Habilita la pantalla
+	return Luz;
 }
 
 void asigna(char c){
@@ -95,9 +107,73 @@ void asigna(char c){
 	}
 }
 
+void asignajoy(unsigned long int x, unsigned long int y, const char escala[]){
+	//Asignación nota
+	if(x<170) TA0CCR0=Nota[escala[0]];
+
+	else if(x<460) TA0CCR0=Nota[escala[1]];
+
+	else if(x<560) TA0CCR0=Nota[escala[2]];
+
+	else if(x<860) TA0CCR0=Nota[escala[3]];
+
+	else TA0CCR0=Nota[escala[4]];
+
+	//Asignación volumen
+	if(y<200)	TA0CCR1=1;	//Silencio
+
+	else TA0CCR1=0.085*TA0CCR0-17;	//Forma lineal de aumentar el volumen con el eje y del joystick
+}
+
+int modfrec(unsigned long int l, unsigned long int lr){
+	int ret;
+	if(l>lr) ret=l*4000/(4000-lr);
+	else	ret=1000*l/lr-1000;
+	return ret;
+}
+
+void DibujaCirculos(int x, int y){
+	Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_WHITE);//borrar circulo antio, esto sería recomendable antes de leer los ejes(podemos dibujar primero las bolas y despues cambiar el sonido
+	Graphics_fillCircle(&g_sContext,circle1[0]+8,circle1[1]+8,22);// MAS 8 ES LA POSICION CENTRAL
+	Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_BLUE);//dibujar nuevo circulo
+	Graphics_fillCircle(&g_sContext,circle1[0]+(x>>6),circle1[1]+(y>>6),10);
+
+	Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_WHITE);//borrar circulo antio, esto sería recomendable antes de leer los ejes(podemos dibujar primero las bolas y despues cambiar el sonido
+	Graphics_fillCircle(&g_sContext,circle2[0]+8,circle2[1]+8,36);// MAS 8 ES LA POSICION CENTRAL
+	Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_GREEN);//dibujar nuevo circulo
+	Graphics_fillCircle(&g_sContext,circle2[0]+(x>>6),circle2[1]+(y>>6),25);
+
+	Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_WHITE);//borrar circulo antio, esto sería recomendable antes de leer los ejes(podemos dibujar primero las bolas y despues cambiar el sonido
+	Graphics_fillCircle(&g_sContext,circle3[0]+8,circle3[1]+8,32);// MAS 8 ES LA POSICION CENTRAL
+	Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_PERU);//dibujar nuevo circulo
+	Graphics_fillCircle(&g_sContext,circle3[0]+(x>>6),circle3[1]+(y>>6),20);
+}
+
+int selectescala(int n){
+	if (!(P1IN&BIT2)){
+		flagboton=1;
+	}
+	else if ((P1IN&BIT2)&&flagboton){
+		flagboton=0;
+		n--;
+	}
+	if(n<0) n=2;
+	if (!(P1IN&BIT1)){
+		flagboton=1;
+	}
+	else if ((P1IN&BIT1)&&flagboton){
+		flagboton=0;
+		n++;
+	}
+	if(n>2) n=0;
+	return n;
+}
+
 void pantalla_inicial(void){
 	if(P2IN&BIT5){//No pasas a inicio hasta que sueltas el botón del joystick
 		flagboton=0;
+		TA0CCR1=1;
+		TA1CCR0=1199;   //PERIODO=100ms
 		LPM0;
 	}
 	if(flagboton==0){
@@ -114,22 +190,22 @@ void pantalla_inicial(void){
 			estado=1; //Pasamos a Reproducir
 			flagboton=1;
 			Graphics_clearDisplay(&g_sContext);
+			inicia_Rep();
 		}
 		if (!(P1IN&BIT2)){
 			estado=2; //Pasamos a Componer
 			flagboton=1;
 			Graphics_clearDisplay(&g_sContext);
-		}
+			LuzRef=LeerLuz();		}
 	}
 }
 
-void reproducir(void){
+/*void reproducir(void){
 	if(P1IN&BIT1){//No pasas a inicio hasta que sueltas el botón del joystick
 			flagboton=0;
 			LPM0;
 		}
 	if(flagboton==0){
-		inicia_Rep();
 		flagRep=1;
 		carac=menu_elige();
 		una_cancion(carac);
@@ -137,9 +213,10 @@ void reproducir(void){
 		if (!(P2IN&BIT5)){
 			estado=0;
 			flagboton=1;
+			Graphics_clearDisplay(&g_sContext);
 		}
 	}
-}
+}*/
 
 void componer(void){
 	if(P1IN&BIT2){//No pasas a inicio hasta que sueltas el botón del joystick
@@ -157,11 +234,13 @@ void componer(void){
 			estado=3; //Usamos Teclado
 			flagboton=1;
 			Graphics_clearDisplay(&g_sContext);
+			UARTinit();
 		}
 		else if (!(P1IN&BIT2)){
 			estado=4; //Usamos Joystick
 			flagboton=1;
 			Graphics_clearDisplay(&g_sContext);
+			Nesc=1;
 		}
 		else if (!(P2IN&BIT5)){
 			estado=0;
@@ -176,17 +255,23 @@ void joystick(void){
 		LPM0;
 	}
 	if(flagboton==0){
-		ejex=lee_ch(0);
-		ejey=1024-lee_ch(3);
+		ejex=lee_ch(0);	//Tipo de nota
+		ejey=lee_ch(3);	//Volumen de la nota
+		ejeyrep=1024-ejey;
+		Nesc=selectescala(Nesc);
+		asignajoy(ejex,ejey,*Escalas[Nesc]);	//Asignar la nota y el volumen dependiendo de la posicion del joystick
 
-		Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_WHITE);//borrar circulo antio, esto sería recomendable antes de leer los ejes(podemos dibujar primero las bolas y despues cambiar el sonido
-		Graphics_fillCircle(&g_sContext,circle1[0]+8,circle1[1]+8,30 );// MAS 8 ES LA POSICION CENTRAL
-		Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_BLUE);//dibujar nuevo circulo
-		Graphics_fillCircle(&g_sContext,circle1[0]+(ejex>>6),circle1[1]+(ejey>>6),20 );
+		Luz=LeerLuz();			//Obtener la luminosidad
+		TA0CCR0+=modfrec(Luz,LuzRef);	//Ajustar la frecuencia según la luminosidad
+		Nescc=Nesc;
+		DibujaCirculos(ejex, ejeyrep);
+		Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_BLACK);
+		Graphics_drawString(&g_sContext,Nescc,10,110,5,OPAQUE_TEXT);
 
 		if (!(P2IN&BIT5)){
-					estado=0;
-					flagboton=1;
+			estado=0;
+			flagboton=1;
+			Graphics_clearDisplay(&g_sContext);
 		}
 	}
 }
@@ -197,33 +282,45 @@ void teclado(void){
 		LPM0;
 	}
 	if(flagboton==0){
-		UARTinit();
 		tec=UARTgetc();
 		asigna(tec);
-		ejey=lee_ch(3);
-		if (ejey<205) teclita=teclita<<2;
-		else if (ejey<410) teclita=teclita<<1;
-		else if (ejey<615) teclita=teclita;
-		else if (ejey<820) teclita=teclita>>1;
-		else teclita=teclita>>2;
-		//Inicialización y leer I2C
-		CS_HIGH;			//Deshabilita la pantalla
-		guarda_conf();		//Almacena la config. de la USCI (para la pantalla)
-		OPT3001_init();		//Configura el I2C apuntando al OPT3001
-		DeviceID=Lee_OPT3001(DEVICEID_REG);
-		Luz=OPT3001_getLux();	//Lee la luminosidad
-		restaura_conf();	//Vuelve a modo SPI (pantalla)
-		CS_LOW;				//Habilita la pantalla
+		ejex=lee_ch(0);
+		ejey=lee_ch(3);	//Volumen de la nota
+		ejeyrep=1024-ejey;
+		Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_BLACK);
+		if (ejey<170){
+			teclita=teclita<<2;
+			Graphics_drawString(&g_sContext,"3",10,110,5,OPAQUE_TEXT);
+		}
+		else if (ejey<460){
+			teclita=teclita<<1;
+			Graphics_drawString(&g_sContext,"4",10,110,5,OPAQUE_TEXT);
+		}
+		else if (ejey<560){
+			teclita=teclita;
+			Graphics_drawString(&g_sContext,"5",10,110,5,OPAQUE_TEXT);
+		}
+		else if (ejey<860){
+			teclita=teclita>>1;
+			Graphics_drawString(&g_sContext,"6",10,110,5,OPAQUE_TEXT);
+		}
+		else{
+			teclita=teclita>>2;
+			Graphics_drawString(&g_sContext,"7",10,110,5,OPAQUE_TEXT);
+		}
+
+		Luz=LeerLuz();
 
 		//Timer para reproducir la nota
 		TA0CCR0=teclita;
 		TA0CCR1=TA0CCR0>>4;
 
 		//Pantalla
-
+		DibujaCirculos(ejex, ejeyrep);
 		if (!(P2IN&BIT5)){
 					estado=0;
 					flagboton=1;
+					Graphics_clearDisplay(&g_sContext);
 		}
 	}
 }
@@ -322,13 +419,12 @@ int main(void) {
 
 	estado=0;
 	while(1){
-		LPM0;
 		switch(estado){
 		case 0:
 			pantalla_inicial(); //Función
 		break;
 		case 1:
-			reproducir(); //Función
+			//reproducir(); //Función
 		break;
 		case 2:
 			componer(); //Función
