@@ -16,8 +16,8 @@ char carac; //Para elegir la canción
 char flagboton=0; //para controlar las pulsaciones
 char flagRep; //Para saber si estamos reproduciendo, para el timer
 char tec;  //Tecla introducida por uart
-int Nesc; //Puntero para elegir la escala del joystick
-char Nescc;
+int Nesc;
+//char EscalaGen[];
 unsigned int t,duracion;
 const unsigned int NotaTec[]={30578,28862,27240,25714,24270,22908,21622,20408,19264,18182,17168,16202,1};
 unsigned int teclita;
@@ -136,7 +136,7 @@ void DibujaCirculos(int x, int y){
 	Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_WHITE);//borrar circulo antio, esto sería recomendable antes de leer los ejes(podemos dibujar primero las bolas y despues cambiar el sonido
 	Graphics_fillCircle(&g_sContext,circle1[0]+8,circle1[1]+8,22);// MAS 8 ES LA POSICION CENTRAL
 	Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_BLUE);//dibujar nuevo circulo
-	Graphics_fillCircle(&g_sContext,circle1[0]+(x>>6),circle1[1]+(y>>6),10);
+	Graphics_fillCircle(&g_sContext,circle1[0]+(x>>8),circle1[1]+(y>>8),10);
 
 	Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_WHITE);//borrar circulo antio, esto sería recomendable antes de leer los ejes(podemos dibujar primero las bolas y despues cambiar el sonido
 	Graphics_fillCircle(&g_sContext,circle2[0]+8,circle2[1]+8,36);// MAS 8 ES LA POSICION CENTRAL
@@ -146,10 +146,10 @@ void DibujaCirculos(int x, int y){
 	Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_WHITE);//borrar circulo antio, esto sería recomendable antes de leer los ejes(podemos dibujar primero las bolas y despues cambiar el sonido
 	Graphics_fillCircle(&g_sContext,circle3[0]+8,circle3[1]+8,32);// MAS 8 ES LA POSICION CENTRAL
 	Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_PERU);//dibujar nuevo circulo
-	Graphics_fillCircle(&g_sContext,circle3[0]+(x>>6),circle3[1]+(y>>6),20);
+	Graphics_fillCircle(&g_sContext,circle3[0]+(x>>7),circle3[1]+(y>>7),20);
 }
 
-int selectescala(int n){
+int selectescala(int n, unsigned long int x, unsigned long int y){
 	if (!(P1IN&BIT2)){
 		flagboton=1;
 	}
@@ -166,6 +166,22 @@ int selectescala(int n){
 		n++;
 	}
 	if(n>2) n=0;
+	int j;
+	Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_BLACK);
+	switch(n){
+	case 0:
+		Graphics_drawString(&g_sContext,"CT",10,110,5,OPAQUE_TEXT);
+		asignajoy(x,y,ESCALA);
+	break;
+	case 1:
+		Graphics_drawString(&g_sContext,"LGB",10,110,5,OPAQUE_TEXT);
+		asignajoy(x,y,ESCALA1);
+	break;
+	case 2:
+		Graphics_drawString(&g_sContext,"RnR",10,110,5,OPAQUE_TEXT);
+		asignajoy(x,y,ESCALA2);
+	break;
+	}
 	return n;
 }
 
@@ -258,15 +274,12 @@ void joystick(void){
 		ejex=lee_ch(0);	//Tipo de nota
 		ejey=lee_ch(3);	//Volumen de la nota
 		ejeyrep=1024-ejey;
-		Nesc=selectescala(Nesc);
-		asignajoy(ejex,ejey,*Escalas[Nesc]);	//Asignar la nota y el volumen dependiendo de la posicion del joystick
+		Nesc=selectescala(Nesc,ejex,ejey);
 
 		Luz=LeerLuz();			//Obtener la luminosidad
 		TA0CCR0+=modfrec(Luz,LuzRef);	//Ajustar la frecuencia según la luminosidad
-		Nescc=Nesc;
+
 		DibujaCirculos(ejex, ejeyrep);
-		Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_BLACK);
-		Graphics_drawString(&g_sContext,Nescc,10,110,5,OPAQUE_TEXT);
 
 		if (!(P2IN&BIT5)){
 			estado=0;
