@@ -1,0 +1,1 @@
+"./Crystalfontz128x128_ST7735.obj" "./HAL_MSP430G2_Crystalfontz128x128_ST7735.obj" "./MSP430_TMP_OPT.obj" "./main.obj" "./reproducir.obj" "./uart_STDIO.obj" "../grlib_MKII.lib" "../lnk_msp430g2553.cmd" -l"libc.a" 
