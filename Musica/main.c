@@ -14,6 +14,8 @@
 char estado;
 char carac; //Para elegir la canción
 char flagboton=0; //para controlar las pulsaciones
+char flagboton1=0;
+char flagboton2=0;
 char flagRep; //Para saber si estamos reproduciendo, para el timer
 char tec;  //Tecla introducida por uart
 int Nesc;
@@ -24,7 +26,7 @@ unsigned int teclita;
 int ejex, ejey, ejeyrep;
 int DeviceID;
 unsigned long int Luz, LuzRef;
-int circle1[]={22,22};//coordenadas centrales de los circulos{X,Y}
+int circle1[]={30,45};//coordenadas centrales de los circulos{X,Y}
 int circle2[]={40,100};
 int circle3[]={80,40};
 
@@ -135,50 +137,50 @@ int modfrec(unsigned long int l, unsigned long int lr){
 void DibujaCirculos(int x, int y){
 	Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_WHITE);//borrar circulo antio, esto sería recomendable antes de leer los ejes(podemos dibujar primero las bolas y despues cambiar el sonido
 	Graphics_fillCircle(&g_sContext,circle1[0]+8,circle1[1]+8,22);// MAS 8 ES LA POSICION CENTRAL
-	Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_BLUE);//dibujar nuevo circulo
+	Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_BLUE+100*x+50*y);//dibujar nuevo circulo
 	Graphics_fillCircle(&g_sContext,circle1[0]+(x>>8),circle1[1]+(y>>8),10);
 
 	Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_WHITE);//borrar circulo antio, esto sería recomendable antes de leer los ejes(podemos dibujar primero las bolas y despues cambiar el sonido
 	Graphics_fillCircle(&g_sContext,circle2[0]+8,circle2[1]+8,36);// MAS 8 ES LA POSICION CENTRAL
-	Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_GREEN);//dibujar nuevo circulo
+	Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_GREEN+88*x+275*y);//dibujar nuevo circulo
 	Graphics_fillCircle(&g_sContext,circle2[0]+(x>>6),circle2[1]+(y>>6),25);
 
 	Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_WHITE);//borrar circulo antio, esto sería recomendable antes de leer los ejes(podemos dibujar primero las bolas y despues cambiar el sonido
 	Graphics_fillCircle(&g_sContext,circle3[0]+8,circle3[1]+8,32);// MAS 8 ES LA POSICION CENTRAL
-	Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_PERU);//dibujar nuevo circulo
+	Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_PERU+10*x+165*y);//dibujar nuevo circulo
 	Graphics_fillCircle(&g_sContext,circle3[0]+(x>>7),circle3[1]+(y>>7),20);
 }
 
 int selectescala(int n, unsigned long int x, unsigned long int y){
 	if (!(P1IN&BIT2)){
-		flagboton=1;
+		flagboton1=1;
 	}
-	else if ((P1IN&BIT2)&&flagboton){
-		flagboton=0;
+	else if ((P1IN&BIT2)&&flagboton1){
+		flagboton1=0;
+		n++;
+	}
+	if (!(P1IN&BIT1)){
+		flagboton2=1;
+	}
+	else if ((P1IN&BIT1)&&flagboton2){
+		flagboton2=0;
 		n--;
 	}
 	if(n<0) n=2;
-	if (!(P1IN&BIT1)){
-		flagboton=1;
-	}
-	else if ((P1IN&BIT1)&&flagboton){
-		flagboton=0;
-		n++;
-	}
 	if(n>2) n=0;
 	int j;
 	Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_BLACK);
 	switch(n){
 	case 0:
-		Graphics_drawString(&g_sContext,"CT",10,110,5,OPAQUE_TEXT);
+		Graphics_drawString(&g_sContext,"CT",25,95,5,OPAQUE_TEXT);
 		asignajoy(x,y,ESCALA);
 	break;
 	case 1:
-		Graphics_drawString(&g_sContext,"LGB",10,110,5,OPAQUE_TEXT);
+		Graphics_drawString(&g_sContext,"LGB",25,95,5,OPAQUE_TEXT);
 		asignajoy(x,y,ESCALA1);
 	break;
 	case 2:
-		Graphics_drawString(&g_sContext,"RnR",10,110,5,OPAQUE_TEXT);
+		Graphics_drawString(&g_sContext,"RnR",25,95,5,OPAQUE_TEXT);
 		asignajoy(x,y,ESCALA2);
 	break;
 	}
