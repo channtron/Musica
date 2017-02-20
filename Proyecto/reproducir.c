@@ -91,8 +91,8 @@ void asignajoy(unsigned long int x, unsigned long int y, const char escala[]){
 
 int modfrec(unsigned long int l, unsigned long int lr){
 	int ret;	//Valor que va a modificar la frecuencia
-	if(l>lr) ret=l*4000/(4000-lr);
-	else	ret=1000*l/lr-1000;
+	if(l>lr) ret=l*5000/(5000-lr);
+	else	ret=5000*l/lr-5000;
 	return ret;
 }
 
@@ -108,7 +108,7 @@ void DibujaCirculos(int x, int y){
 	xrep=1024-x;	//Para que los circulos se muevan en sentido contrario al eje x del joystick
 
 	Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_SNOW-13107*x);	//Color del circulo exterior
-	Graphics_fillCircle(&g_sContext,circle1[0]+(xrep>>8),circle1[1]+(y>>8),22);	//Circulo que se mueve al contrario de la posicion del joystick
+	Graphics_fillCircle(&g_sContext,circle1[0]+(xrep>>8),circle1[1]+(y>>8),18);	//Circulo que se mueve al contrario de la posicion del joystick
 	Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_BLUE+100*x+50*y);	//Color del circulo interior
 	Graphics_fillCircle(&g_sContext,circle1[0]+(x>>8),circle1[1]+(yrep>>8),10);	//Circulo que se mueve mismo sentido que posicion del joystick
 
@@ -142,7 +142,7 @@ int selectescala(int n, unsigned long int x, unsigned long int y){
 		n--;
 	}
 	if(n<0) n=2;
-	if(n>2) n=0;
+	else if(n>2) n=0;
 	Graphics_setBackgroundColor(&g_sContext, GRAPHICS_COLOR_WHITE);
 	Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_BLACK);
 
