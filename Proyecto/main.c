@@ -91,6 +91,7 @@ void joystick(void){
 	if(P1IN&BIT2){//No se pasa a joystick hasta que se suelta el boton de arriba del BP
 		flagboton=0;
 		Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_BLACK);
+		TA1CCR0=119;   //PERIODO=10ms
 		LPM0;
 	}
 	if(flagboton==0){
@@ -145,9 +146,7 @@ void teclado(void){
 			teclita=teclita>>2;
 			Graphics_drawString(&g_sContext,"7",10,110,5,OPAQUE_TEXT);
 		}
-
-		Luz=LeerLuz();	//Obtener la luminosidad actual
-
+		
 		//Timer para reproducir la nota
 		TA0CCR0=teclita;
 		TA0CCR1=TA0CCR0>>4;
