@@ -91,8 +91,8 @@ void asignajoy(unsigned long int x, unsigned long int y, const char escala[]){
 
 int modfrec(unsigned long int l, unsigned long int lr){
 	int ret;	//Valor que va a modificar la frecuencia
-	if(l>lr) ret=l*4000/(4000-lr);
-	else	ret=1000*l/lr-1000;
+	if(l>lr) ret=l*5000/(5000-lr);
+	else	ret=5000*l/lr-5000;
 	return ret;
 }
 
