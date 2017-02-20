@@ -24,6 +24,7 @@ const char ESCALA2[]={FA+12,LA+12,DO+12,RE+12,MIb+12}; //Rock 'n Roll
 
 unsigned int teclita;
 const unsigned int NotaTec[]={30578,28862,27240,25714,24270,22908,21622,20408,19264,18182,17168,16202,1};
+
 void asigna(char c){
 	switch(c){
 	case 83: teclita=NotaTec[0];
@@ -89,49 +90,51 @@ void asignajoy(unsigned long int x, unsigned long int y, const char escala[]){
 }
 
 int modfrec(unsigned long int l, unsigned long int lr){
-	int ret;
+	int ret;	//Valor que va a modificar la frecuencia
 	if(l>lr) ret=l*4000/(4000-lr);
 	else	ret=1000*l/lr-1000;
 	return ret;
 }
 
-int circle1[]={30,45};//coordenadas centrales de los circulos{X,Y}
+//Coordenadas centrales de los circulos{X,Y}
+int circle1[]={30,45};
 int circle2[]={40,100};
 int circle3[]={80,40};
 int yrep, xrep;
+
 void DibujaCirculos(int x, int y){
-	Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_SNOW-13107*x);
-	yrep=1024-y;
-	xrep=1024-x;
+	Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_SNOW-13107*x);	//Color de fondo que cambia con el eje x del joystick
+	yrep=1024-y;	//Como los valores de y en la pantalla crecen hacia abajo, es necesario para que los circulos se muevan en el mismo sentido que el eje y del joystick
+	xrep=1024-x;	//Para que los circulos se muevan en sentido contrario al eje x del joystick
 
-	Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_SNOW-13107*x);;//borrar circulo antio, esto sería recomendable antes de leer los ejes(podemos dibujar primero las bolas y despues cambiar el sonido
-	Graphics_fillCircle(&g_sContext,circle1[0]+(xrep>>8),circle1[1]+(y>>8),22);// MAS 8 ES LA POSICION CENTRAL
-	Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_BLUE+100*x+50*y);//dibujar nuevo circulo
-	Graphics_fillCircle(&g_sContext,circle1[0]+(x>>8),circle1[1]+(yrep>>8),10);
+	Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_SNOW-13107*x);	//Color del circulo exterior
+	Graphics_fillCircle(&g_sContext,circle1[0]+(xrep>>8),circle1[1]+(y>>8),22);	//Circulo que se mueve al contrario de la posicion del joystick
+	Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_BLUE+100*x+50*y);	//Color del circulo interior
+	Graphics_fillCircle(&g_sContext,circle1[0]+(x>>8),circle1[1]+(yrep>>8),10);	//Circulo que se mueve mismo sentido que posicion del joystick
 
-	Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_SNOW-13107*x);//borrar circulo antio, esto sería recomendable antes de leer los ejes(podemos dibujar primero las bolas y despues cambiar el sonido
-	Graphics_fillCircle(&g_sContext,circle2[0]+(xrep>>6),circle2[1]+(y>>6),36);// MAS 8 ES LA POSICION CENTRAL
-	Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_GREEN+88*x+275*y);//dibujar nuevo circulo
-	Graphics_fillCircle(&g_sContext,circle2[0]+(x>>6),circle2[1]+(yrep>>6),25);
+	Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_SNOW-13107*x);	//Color del circulo exterior
+	Graphics_fillCircle(&g_sContext,circle2[0]+(xrep>>6),circle2[1]+(y>>6),36);	//Circulo que se mueve al contrario de la posicion del joystick
+	Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_GREEN+88*x+275*y);	//Color del circulo interior
+	Graphics_fillCircle(&g_sContext,circle2[0]+(x>>6),circle2[1]+(yrep>>6),25);	//Circulo que se mueve mismo sentido que posicion del joystick
 
-	Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_SNOW-13107*x);//borrar circulo antio, esto sería recomendable antes de leer los ejes(podemos dibujar primero las bolas y despues cambiar el sonido
-	Graphics_fillCircle(&g_sContext,circle3[0]+(xrep>>7),circle3[1]+(y>>7),32);// MAS 8 ES LA POSICION CENTRAL
-	Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_PERU+10*x+165*y);//dibujar nuevo circulo
-	Graphics_fillCircle(&g_sContext,circle3[0]+(x>>7),circle3[1]+(yrep>>7),20);
+	Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_SNOW-13107*x);	//Color del circulo exterior
+	Graphics_fillCircle(&g_sContext,circle3[0]+(xrep>>7),circle3[1]+(y>>7),32);	//Circulo que se mueve al contrario de la posicion del joystick
+	Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_PERU+10*x+165*y);	//Color del circulo interior
+	Graphics_fillCircle(&g_sContext,circle3[0]+(x>>7),circle3[1]+(yrep>>7),20);	//Circulo que se mueve mismo sentido que posicion del joystick
 }
 
-char flagboton1=0;
-char flagboton2=0;
+char flagboton1=0;	//Flag para el boton de abajo del BP
+char flagboton2=0;	//Flag para el boton de arriba del BP
 
 int selectescala(int n, unsigned long int x, unsigned long int y){
-	if (!(P1IN&BIT2)){
+	if (!(P1IN&BIT2)){	//Se pulsa el boton de abajo del BP
 		flagboton1=1;
 	}
 	else if ((P1IN&BIT2)&&flagboton1){
 		flagboton1=0;
 		n++;
 	}
-	if (!(P1IN&BIT1)){
+	if (!(P1IN&BIT1)){	//Se pulsa el boton de arriba del BP
 		flagboton2=1;
 	}
 	else if ((P1IN&BIT1)&&flagboton2){
@@ -142,6 +145,8 @@ int selectescala(int n, unsigned long int x, unsigned long int y){
 	if(n>2) n=0;
 	Graphics_setBackgroundColor(&g_sContext, GRAPHICS_COLOR_WHITE);
 	Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_BLACK);
+
+	//Asignacion de notas segun la escala y posicion del joystick
 	switch(n){
 	case 0:
 		Graphics_drawString(&g_sContext,"CT ",25,95,5,OPAQUE_TEXT);
