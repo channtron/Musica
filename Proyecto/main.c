@@ -11,13 +11,13 @@
  * main.c
  */
 char estado;
-char flagboton=0; //para controlar las pulsaciones
+char flagboton=0; //Para controlar las pulsaciones de los cambios de estado
 char tec;  //Tecla introducida por uart
-int Nesc;
-unsigned int teclita;
-int ejex, ejey;
-int DeviceID;
-unsigned long int Luz, LuzRef;
+int Nesc;  //Indicar la escala que se usa en el joystick
+unsigned int teclita;	//Nota de la tecla introducida por la uart
+int ejex, ejey;		//Posición del joystick
+int DeviceID;		//Para poder leer el sensor de luz
+unsigned long int Luz, LuzRef;	//Valor del sensor de luz
 
 Graphics_Context g_sContext;
 
@@ -53,9 +53,9 @@ int LeerLuz(void){
 }
 
 void pantalla_inicial(void){
-	if(P2IN&BIT5){//No pasas a inicio hasta que sueltas el boton del joystick
+	if(P2IN&BIT5){		//No pasa a inicio hasta que se suelta el boton del joystick
 		flagboton=0;
-		TA0CCR1=1;
+		TA0CCR1=1;	//Silencio del Buzzer
 		TA1CCR0=1199;   //PERIODO=100ms
 		LPM0;
 	}
@@ -65,61 +65,66 @@ void pantalla_inicial(void){
 		P1SEL2&=~(BIT1|BIT2);
 		P1REN|=(BIT1|BIT2);
 		P1OUT|=(BIT1|BIT2);
+		//Pantalla
 		Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_BLACK);
 		Graphics_drawString(&g_sContext,"Elige modo:",30,10,10,OPAQUE_TEXT);
 		Graphics_drawString(&g_sContext,"Up.- Teclado",30,10,40,OPAQUE_TEXT);
 		Graphics_drawString(&g_sContext,"Dw.- Joystick",30,10,70,OPAQUE_TEXT);
-		if (!(P1IN&BIT1)){
-			estado=1; //Pasamos a Teclado
+		if (!(P1IN&BIT1)){	//Pulsa boton de arriba del BP
+			estado=1; //Se usa el Teclado
 			flagboton=1;
 			Graphics_clearDisplay(&g_sContext);
 			UARTinit();
-			LuzRef=LeerLuz();
+			LuzRef=LeerLuz();   //Luz que recibe en ese momento para usarla de referencia a la hora de distorsionar
 		}
-		if (!(P1IN&BIT2)){
-			estado=2; //Pasamos a Joystick
+		if (!(P1IN&BIT2)){	//Se pulsa el boton de abajo del BP
+			estado=2; //Se usa el Joystick
 			flagboton=1;
 			Graphics_clearDisplay(&g_sContext);
-			LuzRef=LeerLuz();
-			Nesc=1;
+			LuzRef=LeerLuz();  //Luz que recibe en ese momento para usarla de referencia a la hora de distorsionar
+			Nesc=1;		//Por defecto se empieza en la escala 1
 		}
 	}
 }
 
 void joystick(void){
-	if(P1IN&BIT2){//No pasas a inicio hasta que sueltas el boton del joystick
+	if(P1IN&BIT2){//No se pasa a joystick hasta que se suelta el boton de arriba del BP
 		flagboton=0;
 		Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_BLACK);
 		LPM0;
 	}
 	if(flagboton==0){
-
+	
+		//Eleccion de la escala en funcion del indicador Nesc y asignacion de la nota a tocar y su volumen en funcion de la posicion del joystick
 		Nesc=selectescala(Nesc,ejex,ejey);
 
 		Luz=LeerLuz();			//Obtener la luminosidad
 		TA0CCR0+=modfrec(Luz,LuzRef);	//Ajustar la frecuencia segun la luminosidad
-
+	
+		//Pantalla BP
 		DibujaCirculos(ejex, ejey);
 
-		if (!(P2IN&BIT5)){
-			estado=0;
+		if (!(P2IN&BIT5)){	//Boton del joystick para volver al inicio
+			estado=0;	//Se pasa a pantalla-inicial
 			flagboton=1;
-			Graphics_clearDisplay(&g_sContext);
+			Graphics_clearDisplay(&g_sContext);	//Borra la pantalla del BP
 		}
 	}
 }
 
 void teclado(void){
-	if(P1IN&BIT1){//No pasas a inicio hasta que sueltas el botón del joystick
+	if(P1IN&BIT1){//No se pasa a teclado hasta que se suelta el botón de abajo del BP
 		flagboton=0;
 		TA1CCR0=119;   //PERIODO=10ms
 		LPM0;
 	}
 	if(flagboton==0){
-		tec=UARTgetc();
-		asigna(tec);
+		tec=UARTgetc();	//Tecla procedente del teclado del ordenador que entra por la uart
+		asigna(tec);	//Asignacion de la frecuencia a reproducir segun la tecla pulsada
 		Graphics_setBackgroundColor(&g_sContext, GRAPHICS_COLOR_WHITE);
 		Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_BLACK);
+	
+		//Seleccion de la octava segun la posicion del joystick en el eje y
 		if (ejey<100){
 			teclita=teclita<<2;
 			Graphics_drawString(&g_sContext,"3",10,110,5,OPAQUE_TEXT);
@@ -141,18 +146,19 @@ void teclado(void){
 			Graphics_drawString(&g_sContext,"7",10,110,5,OPAQUE_TEXT);
 		}
 
-		Luz=LeerLuz();
+		Luz=LeerLuz();	//Obtener la luminosidad actual
 
 		//Timer para reproducir la nota
 		TA0CCR0=teclita;
 		TA0CCR1=TA0CCR0>>4;
 
-		//Pantalla
+		//Pantalla BP
 		DibujaCirculos(ejex, ejey);
-		if (!(P2IN&BIT5)){
-					estado=0;
+		
+		if (!(P2IN&BIT5)){	//Boton del joystick para volver al inicio
+					estado=0;	//Se pasa al estado de pantalla-inicial
 					flagboton=1;
-					Graphics_clearDisplay(&g_sContext);
+					Graphics_clearDisplay(&g_sContext);	//Borrar la pantalla del BP
 		}
 	}
 }
@@ -254,8 +260,8 @@ int main(void) {
 
 	estado=0;
 	while(1){
-		ejex=lee_ch(0);
-		ejey=lee_ch(3);	//Volumen de la nota
+		ejex=lee_ch(0);	//Posicion del joystick en el eje x
+		ejey=lee_ch(3);	//Posicion del joystick en el eje y
 		switch(estado){
 		case 0:
 			pantalla_inicial(); //Funcion
@@ -280,5 +286,5 @@ __interrupt void ConvertidorAD(void)
 #pragma vector=TIMER1_A0_VECTOR
 __interrupt void TIMER1_A0_ISR_HOOK(void)
 {
-	LPM0_EXIT;	//Despierta al micro cada 100ms
+	LPM0_EXIT;	//Despierta al micro cada 10ms o cada 100ms
 }
