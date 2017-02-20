@@ -94,13 +94,13 @@ void joystick(void){
 		LPM0;
 	}
 	if(flagboton==0){
-	
+
 		//Eleccion de la escala en funcion del indicador Nesc y asignacion de la nota a tocar y su volumen en funcion de la posicion del joystick
 		Nesc=selectescala(Nesc,ejex,ejey);
 
 		Luz=LeerLuz();			//Obtener la luminosidad
-		TA0CCR0+=modfrec(Luz,LuzRef);	//Ajustar la frecuencia segun la luminosidad
-	
+		TA0CCR0-=modfrec(Luz,LuzRef);	//Ajustar la frecuencia segun la luminosidad
+
 		//Pantalla BP
 		DibujaCirculos(ejex, ejey);
 
@@ -123,9 +123,9 @@ void teclado(void){
 		asigna(tec);	//Asignacion de la frecuencia a reproducir segun la tecla pulsada
 		Graphics_setBackgroundColor(&g_sContext, GRAPHICS_COLOR_WHITE);
 		Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_BLACK);
-	
+
 		//Seleccion de la octava segun la posicion del joystick en el eje y
-		if (ejey<100){
+		if (ejey<60){
 			teclita=teclita<<2;
 			Graphics_drawString(&g_sContext,"3",10,110,5,OPAQUE_TEXT);
 		}
@@ -154,7 +154,7 @@ void teclado(void){
 
 		//Pantalla BP
 		DibujaCirculos(ejex, ejey);
-		
+
 		if (!(P2IN&BIT5)){	//Boton del joystick para volver al inicio
 					estado=0;	//Se pasa al estado de pantalla-inicial
 					flagboton=1;
