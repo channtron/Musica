@@ -8,6 +8,8 @@
 #ifndef PROYECTO_1617_REPRODUCIR_H_
 #define PROYECTO_1617_REPRODUCIR_H_
 
+//Los define y Nota[] se han cogido del fichero partituras.h aportado por el profesor para la realizacion de las practicas
+
 #define 	DO 12
 #define 	REb	13
 #define		RE	14
@@ -34,10 +36,10 @@ extern const char ESCALA2[];
 
 
 /* Funciones para el manejo del reproductor*/
-void asigna(char c);
-void asignajoy(unsigned long int x, unsigned long int y, const char escala[]);
-int modfrec(unsigned long int l, unsigned long int lr);
-void DibujaCirculos(int x, int y);
-int selectescala(int n, unsigned long int x, unsigned long int y);
+void asigna(char c);	//Asigna una frecuencia determinada segun la tecla pulsada en el teclado del ordenador
+void asignajoy(unsigned long int x, unsigned long int y, const char escala[]);	//Asignacion de la nota y el volumen a reproducir segun la pos del joystick y la escala en la que se encuentra
+int modfrec(unsigned long int l, unsigned long int lr);	//Valor para modificar la frecuencia de la nota dependiendo de la luz actual y la luz que tenga como referencia
+void DibujaCirculos(int x, int y);	//Dibujar la pantalla del BP
+int selectescala(int n, unsigned long int x, unsigned long int y);	//Elegir escala segun los botones del BP y llamada a la funcion asignajoy()
 
 #endif	/*PROYECTO_1617_REPRODUCIR_H_ */
